@@ -15,11 +15,13 @@ int main() {
     int numRows = 0;
     int pixelMax = 0;
 
+    // open files and reader
     ifstream imageFile("C:/Users/jeffp/CLionProjects/HPC2/yeast.pgm");
     ofstream output("C:/Users/jeffp/CLionProjects/HPC2/processedImage.pgm", std::ios_base::binary);
     stringstream ss;
     ss << imageFile.rdbuf();
 
+    // get and print header info
     ss >> version;
     ss >> numCols >> numRows;
     ss >> pixelMax;
@@ -54,17 +56,20 @@ int main() {
     for(int i = 0; i < numRows; i++)
         updatedPixelArray[i] = new int[numCols];
 
+    // start timer for image processing
     auto start = std::chrono::system_clock::now();
 
     // populate processed image array including 0 values for padding around outside edges
     #pragma omp parallel for shared(updatedPixelArray)
     for(int row = 0; row < numRows; ++row) {
         for (int col = 0; col < numCols; ++col) {
+            // add 0 value padding to first and last row/column
             if (row == 0 || row == numRows - 1) {
                 updatedPixelArray[row][col] = 0;
             } else if (col == 0 || col == numCols - 1){
                 updatedPixelArray[row][col] = 0;
             } else {
+                // calculate new pixel value using Sobel operator and threshold
                 double pixelVal =
                     abs(pixelArray[row - 1][col - 1]  +
                     2 * pixelArray[row][col - 1] +
@@ -84,13 +89,15 @@ int main() {
         }
     }
 
+    // end timer for image processing
     std::chrono::duration<double> duration = (std::chrono::system_clock::now() - start);
 
+    // store the image header in our output file
     output << version << "\n";
     output << numCols << " " << numRows << "\r\n";
     output << pixelMax << "\r\n";
 
-     // Now print the array to see the result
+    // store the updated array in our output file
     for(int row = 0; row < numRows; ++row) {
         for(int col = 0; col < numCols; ++col) {
             output << updatedPixelArray[row][col] << " ";
@@ -98,8 +105,10 @@ int main() {
         output << "\r\n";
     }
 
+    // flush the output
     output << std::flush;
 
+    // delete the arrays from memory, close input/output files, and print timing result
     for(int i = 0; i < numRows; i++)
         delete[] pixelArray[i];
     delete[] pixelArray;
