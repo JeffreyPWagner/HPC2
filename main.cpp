@@ -56,10 +56,8 @@ int main() {
 
     auto start = std::chrono::system_clock::now();
 
-    double pixelVal = 0;
-
     // populate processed image array including 0 values for padding around outside edges
-    //#pragma omp parallel for shared(updatedPixelArray) reduction(+: diff) private(pixelVal, row, column)
+    #pragma omp parallel for shared(updatedPixelArray)
     for(int row = 0; row < numRows; ++row) {
         for (int col = 0; col < numCols; ++col) {
             if (row == 0 || row == numRows - 1) {
@@ -67,7 +65,7 @@ int main() {
             } else if (col == 0 || col == numCols - 1){
                 updatedPixelArray[row][col] = 0;
             } else {
-                pixelVal =
+                double pixelVal =
                     abs(pixelArray[row - 1][col - 1]  +
                     2 * pixelArray[row][col - 1] +
                     pixelArray[row + 1][col - 1] -
