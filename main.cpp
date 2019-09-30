@@ -1,39 +1,42 @@
 #include <iostream>
 #include <fstream>
+#include <cmath>
+#include <chrono>
 #include <sstream>
+#include <cstdlib>
+#include "omp.h"
 
 using namespace std;
+using namespace std::chrono;
 int main() {
     // note: most of the code to read in the file was adapted from a helpful stack overflow answer
-    string line;
+    string version;
     int numCols = 0;
     int numRows = 0;
     int pixelMax = 0;
-    stringstream ss;
 
-    ifstream imageFile("C:/Users/jeffp/CLionProjects/HPC2/cell.pgm", std::ios_base::binary);
-
+    ifstream imageFile("C:/Users/jeffp/CLionProjects/HPC2/yeast.pgm");
     ofstream output("C:/Users/jeffp/CLionProjects/HPC2/processedImage.pgm", std::ios_base::binary);
-
-    getline(imageFile, line);
-    if(line.compare("P2") != 0) cerr << "Version error" << endl;
-    else cout << "Version : " << line << endl;
-
+    stringstream ss;
     ss << imageFile.rdbuf();
-    ss >> numCols >> numRows;
-    cout << numCols << " columns and " << numRows << " rows" << endl;
 
+    ss >> version;
+    ss >> numCols >> numRows;
     ss >> pixelMax;
+
+    cout << "Version : " << version << "\n" << numCols << " columns and " << numRows << " rows" << "\n";
     cout << "Max pixel value: " << pixelMax << "\n";
 
     // add rows and columns for padding
     numRows += 2;
     numCols += 2;
 
+    // create array to hold pixel values of source image
     int** pixelArray = new int*[numRows];
     for(int i = 0; i < numRows; i++)
         pixelArray[i] = new int[numCols];
 
+    // populate source image array
     for(int row = 0; row < numRows; ++row) {
         for (int col = 0; col < numCols; ++col) {
             if (row == 0 || row == numRows - 1) {
@@ -46,10 +49,17 @@ int main() {
         }
     }
 
+    // create array to hold pixel values of updated image
     int** updatedPixelArray = new int*[numRows];
     for(int i = 0; i < numRows; i++)
         updatedPixelArray[i] = new int[numCols];
 
+    auto start = std::chrono::system_clock::now();
+
+    double pixelVal = 0;
+
+    // populate processed image array including 0 values for padding around outside edges
+    //#pragma omp parallel for shared(updatedPixelArray) reduction(+: diff) private(pixelVal, row, column)
     for(int row = 0; row < numRows; ++row) {
         for (int col = 0; col < numCols; ++col) {
             if (row == 0 || row == numRows - 1) {
@@ -57,29 +67,28 @@ int main() {
             } else if (col == 0 || col == numCols - 1){
                 updatedPixelArray[row][col] = 0;
             } else {
-                double pixelVal =
-                        pixelArray[row - 1][col - 1] * -0.0625
-                        + pixelArray[row - 1][col] * -0.0625 +
-                        pixelArray[row - 1][col + 1] * -0.0625 + pixelArray[row][col - 1] * -0.0625 +
-                        pixelArray[row][col] * 0.5 +
-                        pixelArray[row][col + 1] * -0.0625 + pixelArray[row + 1][col - 1] * -0.0625 +
-                        pixelArray[row + 1][col] * -0.0625 +
-                        pixelArray[row + 1][col + 1] * -0.0625;
-                if (pixelVal < 2) {
-                    updatedPixelArray[row][col] = 0;
-                } else {
-                    updatedPixelArray[row][col] = 255;
-                }
+                pixelVal =
+                    abs(pixelArray[row - 1][col - 1]  +
+                    2 * pixelArray[row][col - 1] +
+                    pixelArray[row + 1][col - 1] -
+                    pixelArray[row - 1][col + 1] -
+                    2* pixelArray[row][col + 1] -
+                    pixelArray[row + 1][col + 1]) +
+                    abs(pixelArray[row - 1][col - 1] +
+                    2 * pixelArray[row - 1][col] +
+                    pixelArray[row - 1][col + 1] -
+                    pixelArray[row + 1][col - 1] -
+                    2 * pixelArray[row + 1][col] -
+                    pixelArray[row + 1][col + 1]);
+                pixelVal = pixelVal > 70 ? 255 : 0;
+                updatedPixelArray[row][col] = int(pixelVal);
             }
         }
     }
 
-    cout << line;
-    cout << numRows;
-    cout << numCols;
-    cout << pixelMax;
+    std::chrono::duration<double> duration = (std::chrono::system_clock::now() - start);
 
-    output << line << "\r\n";
+    output << version << "\n";
     output << numCols << " " << numRows << "\r\n";
     output << pixelMax << "\r\n";
 
@@ -103,4 +112,6 @@ int main() {
 
     imageFile.close();
     output.close();
+
+    cout << "This run took: " << duration.count() << " seconds";
 }
