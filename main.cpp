@@ -15,7 +15,7 @@ int main() {
     int pixelMax = 0;
 
     // open files and reader
-    ifstream imageFile("C:/Users/jeffp/CLionProjects/HPC2/yeast.pgm");
+    ifstream imageFile("C:/Users/jeffp/CLionProjects/HPC2/sestonDiatom.pgm");
     ofstream output("C:/Users/jeffp/CLionProjects/HPC2/processedImage.pgm", std::ios_base::binary);
     stringstream ss;
     ss << imageFile.rdbuf();
@@ -84,7 +84,7 @@ int main() {
                     2 * pixelArray[row + 1][col] -
                     pixelArray[row + 1][col + 1]);
                 pixelVal = pixelVal > pixelMax ? pixelMax : pixelVal;
-                pixelVal = pixelVal < 0 ? 0 : pixelVal;
+                pixelVal = pixelVal < 50 ? 0 : pixelVal;
                 updatedPixelArray[row][col] = int(pixelVal);
             }
         }
