@@ -9,9 +9,8 @@
 using namespace std;
 using namespace std::chrono;
 int main() {
-    // note: most of the code to read in the file was adapted from a helpful stack overflow answer
-    string version;
-    int numCols = 0;
+    string version; // the pgm version of the input image
+    int numCols = 0; // the wid
     int numRows = 0;
     int pixelMax = 0;
 
@@ -26,6 +25,7 @@ int main() {
     ss >> numCols >> numRows;
     ss >> pixelMax;
 
+    cout << "Max threads: " << omp_get_max_threads() << "\n";
     cout << "Version : " << version << "\n" << numCols << " columns and " << numRows << " rows" << "\n";
     cout << "Max pixel value: " << pixelMax << "\n";
 
@@ -83,7 +83,8 @@ int main() {
                     pixelArray[row + 1][col - 1] -
                     2 * pixelArray[row + 1][col] -
                     pixelArray[row + 1][col + 1]);
-                pixelVal = pixelVal > 70 ? 255 : 0;
+                pixelVal = pixelVal > pixelMax ? pixelMax : pixelVal;
+                pixelVal = pixelVal < 0 ? 0 : pixelVal;
                 updatedPixelArray[row][col] = int(pixelVal);
             }
         }
